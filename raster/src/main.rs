@@ -1,4 +1,9 @@
-use fltk::{prelude::*, window::Window};
+use fltk::{prelude::*, window::Window, app, enums::Mode};
+
+mod mesh;
+use mesh::*;
+mod math;
+use math::*;
 
 const WIDTH:i32 = 1200;
 const HEIGHT:i32 = 800;
@@ -24,6 +29,7 @@ window.draw(move |_| {
 });
 
 window.end();
+app::set_visual(Mode::Rgb8).unwrap();
 window.show();
 
 //run event loop
