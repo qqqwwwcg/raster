@@ -1,37 +1,39 @@
-use fltk::{prelude::*, window::Window, app, enums::Mode};
+use fltk::{app, enums::Mode, prelude::*, window::Window};
 
 mod mesh;
 use mesh::*;
 mod math;
 use math::*;
+mod buffer;
+use buffer::*;
 
-const WIDTH:i32 = 1200;
-const HEIGHT:i32 = 800;
+const WIDTH: i32 = 1200;
+const HEIGHT: i32 = 800;
 
 //app: application for run event loop
 //window: surface and persation image
 
 fn main() {
-let app = fltk::app::App::default();
-let mut window = Window::new(100,100,WIDTH,HEIGHT,"raster");
+    let app = fltk::app::App::default();
+    let mut window = Window::new(100, 100, WIDTH, HEIGHT, "raster");
 
-let data:Vec<u8> = (0..WIDTH*HEIGHT*3).into_iter().map(|channle|channle as u8).collect();
-window.draw(move |_| {
-    fltk::draw::draw_image(
-        &data,
-        0,
-        0,
-        WIDTH ,
-        HEIGHT ,
-        fltk::enums::ColorDepth::Rgb8,
-    )
-    .unwrap();
-});
+    let mut framer_buffer =
+        FrameBuffer::new(WIDTH as usize, HEIGHT as usize, Vec3::new(0.0, 0.0, 0.0));
+    framer_buffer.set_value(
+        HEIGHT as usize / 2,
+        WIDTH as usize / 2,
+        Vec3::new(255.0, 0.0, 0.0),
+    );
+    let data = framer_buffer.flatten();
 
-window.end();
-app::set_visual(Mode::Rgb8).unwrap();
-window.show();
+    window.draw(move |_| {
+        fltk::draw::draw_image(&data, 0, 0, WIDTH, HEIGHT, fltk::enums::ColorDepth::Rgb8).unwrap();
+    });
 
-//run event loop
-app.run().unwrap();
+    window.end();
+    app::set_visual(Mode::Rgb8).unwrap();
+    window.show();
+
+    //run event loop
+    app.run().unwrap();
 }
