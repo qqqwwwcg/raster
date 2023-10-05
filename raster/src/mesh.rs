@@ -3,7 +3,7 @@ use crate::*;
 pub struct Mesh{
     pub verteies:Vec<Vertex>,
     pub indies:Vec<usize>,
-    pub topology:Topology,
+    pub topology:TopologyList,
     //pub material: Material,
 }
 
@@ -14,8 +14,8 @@ pub struct Vertex{
     pub color:Vec3
 }
 
-pub enum Topology{
-    TriangleList,
-    LineList,
-    PointList
+pub enum TopologyList{
+    Triangle,
+    Line,
+    Point
 }
