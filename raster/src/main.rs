@@ -17,11 +17,9 @@ fn main() {
     let app = fltk::app::App::default();
     let mut window = Window::new(100, 100, WIDTH, HEIGHT, "raster");
 
-    let mut framer_buffer =
-        FrameBuffer::new(WIDTH as usize, HEIGHT as usize, Vec3::new(0.0, 0.0, 0.0));
-    framer_buffer.set_value(
-        HEIGHT as usize / 2,
-        WIDTH as usize / 2,
+    let mut framer_buffer = FrameBuffer::new(WIDTH as u32, HEIGHT as u32);
+    framer_buffer.set_pixel(
+        Vec2::new(WIDTH as u32 / 2, HEIGHT as u32 / 2),
         Vec3::new(255.0, 0.0, 0.0),
     );
     let data = framer_buffer.flatten();
