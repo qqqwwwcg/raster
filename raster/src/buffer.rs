@@ -45,7 +45,7 @@ impl FrameBuffer {
     pub fn draw_pixel(&mut self, pixel: (u32, u32), color: Vec3) {
         self.buffer.set_value(pixel.0, pixel.1, color)
     }
-    pub fn flatten(&mut self) -> Vec<u8> {
+    pub fn flatten(&self) -> Vec<u8> {
         let mut flatten = Vec::with_capacity(self.buffer.get_len());
         self.buffer.get_buffer().iter().for_each(|color| {
             flatten.push(color.x as u8);
