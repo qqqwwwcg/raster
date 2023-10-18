@@ -34,7 +34,7 @@ impl<T: Copy> Buffer<T> {
 
 pub type DepthBuffer = Buffer<f32>;
 pub struct FrameBuffer {
-    buffer: Buffer<Vec3<f32>>,
+    buffer: Buffer<Vec3>,
 }
 impl FrameBuffer {
     pub fn new(width: u32, height: u32) -> Self {
@@ -42,8 +42,8 @@ impl FrameBuffer {
             buffer: Buffer::new_with_capacity(width, height, Vec3::default()),
         }
     }
-    pub fn set_pixel(&mut self, pixel: Vec2<u32>, color: Vec3<f32>) {
-        self.buffer.set_value(pixel.x, pixel.y, color)
+    pub fn draw_pixel(&mut self, pixel: (u32, u32), color: Vec3) {
+        self.buffer.set_value(pixel.0, pixel.1, color)
     }
     pub fn flatten(&mut self) -> Vec<u8> {
         let mut flatten = Vec::with_capacity(self.buffer.get_len());

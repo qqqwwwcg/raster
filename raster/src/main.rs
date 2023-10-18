@@ -18,8 +18,8 @@ fn main() {
     let mut window = Window::new(100, 100, WIDTH, HEIGHT, "raster");
 
     let mut framer_buffer = FrameBuffer::new(WIDTH as u32, HEIGHT as u32);
-    framer_buffer.set_pixel(
-        Vec2::new(WIDTH as u32 / 2, HEIGHT as u32 / 2),
+    framer_buffer.draw_pixel(
+        (WIDTH as u32 / 2, HEIGHT as u32 / 2),
         Vec3::new(255.0, 0.0, 0.0),
     );
     let data = framer_buffer.flatten();

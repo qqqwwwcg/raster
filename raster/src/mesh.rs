@@ -8,10 +8,10 @@ pub struct Mesh {
 }
 
 pub struct Vertex {
-    pub positon: Vec3<f32>,
-    pub normal: Vec3<f32>,
-    pub uv: Vec2<f32>,
-    pub color: Vec3<f32>,
+    pub position: Vec3,
+    pub normal: Vec3,
+    pub uv: Vec2,
+    pub color: Vec3,
 }
 
 pub enum TopologyList {
