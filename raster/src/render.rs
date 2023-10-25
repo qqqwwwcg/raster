@@ -25,17 +25,79 @@ impl Render {
         let dy = y1 - y0;
         let k = dy / dx;
 
-        let mut x0 = x0;
-        let mut y0 = y0;
-        while x0 < x1 {
+        let mut x = x0;
+        let mut y = y0;
+        while x <= x1 {
             let pixel = match steep {
-                Steep::X => (x0 as u32, y0 as u32),
-                Steep::Y => (y0 as u32, x0 as u32),
+                Steep::X => (x as u32, y as u32),
+                Steep::Y => (y as u32, x as u32),
             };
             self.frame_buffer.draw_pixel(pixel, color);
 
-            x0 += 1.0;
-            y0 += k; //optimize add k ,replace mul y = x0 * k +b,
+            x += 1.0;
+            y += k; //optimize add k ,replace mul y = x * k +b,
+        }
+    }
+    fn middle_point_draw_line(
+        &mut self,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        steep: Steep,
+        color: Vec3,
+    ) {
+        let inc = if y1 < y0 { -1.0 } else { 1.0 };
+        //f(x,y) = (y1 -y2) * x + (x2 - x1) * y + x1 * y2 - x2 * y1
+        let f = |x: f32, y: f32| (y0 - y1) * x + (x1 - x0) * y + x0 * y1 - x1 * y0;
+
+        let mut x = x0;
+        let mut y = y0;
+
+        while x <= x1 {
+            let pixel = match steep {
+                Steep::X => (x as u32, y as u32),
+                Steep::Y => (y as u32, x as u32),
+            };
+            self.frame_buffer.draw_pixel(pixel, color);
+
+            x += 1.0;
+            if inc * f(x, y + 0.5 * inc) < 0. {
+                y += inc
+            }
+        }
+    }
+    fn bresenham_draw_line(
+        &mut self,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        steep: Steep,
+        color: Vec3,
+    ) {
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+        let k = dy;
+        let inc = if y1 < y0 { -1 } else { 1 };
+
+        let mut delta = -inc * dx;
+        let mut x = x0;
+        let mut y = y0;
+
+        while x <= x1 {
+            let pixel = match steep {
+                Steep::X => (x as u32, y as u32),
+                Steep::Y => (y as u32, x as u32),
+            };
+            self.frame_buffer.draw_pixel(pixel, color);
+
+            x += 1;
+            delta += k << 1;
+            if inc * delta > 0 {
+                y += inc;
+                delta -= inc * (dx << 1);
+            }
         }
     }
 
@@ -69,8 +131,12 @@ impl Render {
             DrawLineAlgorithm::DDA => {
                 self.digital_differential_analyzer_draw_line(x0, y0, x1, y1, steep, color)
             }
-            DrawLineAlgorithm::MiddlePoint => {}
-            DrawLineAlgorithm::Bresenham => {}
+            DrawLineAlgorithm::MiddlePoint => {
+                self.middle_point_draw_line(x0, y0, x1, y1, steep, color)
+            }
+            DrawLineAlgorithm::Bresenham => {
+                self.bresenham_draw_line(x0 as i32, y0 as i32, x1 as i32, y1 as i32, steep, color)
+            }
         }
     }
 

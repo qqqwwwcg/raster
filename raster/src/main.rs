@@ -32,13 +32,13 @@ fn main() {
         Vec2::new(10.0, 10.0),
         Vec2::new(400.0, 400.0),
         Vec3::new(255.0, 0.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(400.0, 10.0),
         Vec2::new(10.0, 400.0),
         Vec3::new(255.0, 0.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
 
     //draw Orient::CW rect
@@ -46,25 +46,25 @@ fn main() {
         Vec2::new(10.0, 10.0),
         Vec2::new(400.0, 10.0),
         Vec3::new(0.0, 255.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(400.0, 10.0),
         Vec2::new(400.0, 400.0),
         Vec3::new(0.0, 255.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(400.0, 400.0),
         Vec2::new(10.0, 400.0),
         Vec3::new(0.0, 255.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(10.0, 400.0),
         Vec2::new(10.0, 10.0),
         Vec3::new(0.0, 255.0, 0.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
 
     //draw Orient::CCW rect
@@ -72,25 +72,25 @@ fn main() {
         Vec2::new(100.0, 100.0),
         Vec2::new(100.0, 300.0),
         Vec3::new(0.0, 0.0, 255.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(100.0, 300.0),
         Vec2::new(300.0, 300.0),
         Vec3::new(0.0, 0.0, 255.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(300.0, 300.0),
         Vec2::new(300.0, 100.0),
         Vec3::new(0.0, 0.0, 255.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     render.draw_line(
         Vec2::new(300.0, 100.0),
         Vec2::new(100.0, 100.0),
         Vec3::new(0.0, 0.0, 255.0),
-        render::DrawLineAlgorithm::DDA,
+        render::DrawLineAlgorithm::Bresenham,
     );
     let data = render.get_frame();
 
