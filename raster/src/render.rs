@@ -105,6 +105,7 @@ impl Render {
         self.frame_buffer
             .draw_pixel((point.x as u32, point.y as u32), color)
     }
+
     pub fn draw_line(&mut self, start: Vec2, end: Vec2, color: Vec3, algorithm: DrawLineAlgorithm) {
         if start.x == end.x && start.y == end.y {
             //draw line downgrade to draw point
@@ -139,6 +140,8 @@ impl Render {
             }
         }
     }
+
+    //Barycentric Coordinates incremental updating
     pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Vec3) {
         //get bounding
         let min = Vec2::new(a.x.min(b.x).min(c.x), a.y.min(b.y).min(c.y));
@@ -146,22 +149,18 @@ impl Render {
         println!("min:x:{},y:{}", min.x, min.y);
         println!("max:x:{},y:{}", max.x, max.y);
 
-        let delta_beta_x =
-            (a.y - c.y) / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
-        let delta_gamma_x =
-            (a.y - b.y) / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
-        let delta_beta_y =
-            (c.x - a.x) / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
-        let delta_gamma_y =
-            (b.x - a.x) / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
-        let beta0 = ((a.y - c.y) * min.x + (c.x - a.x) * min.y + a.x * c.y - c.x * a.y)
-            / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
-        let gamma0 = ((a.y - b.y) * min.x + (b.x - a.x) * min.y + a.x * b.y - b.x * a.y)
-            / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
+        let inv_beta = 1.0 / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
+        let inv_gamma = 1.0 / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
+        let delta_beta_x = (a.y - c.y) * inv_beta;
+        let delta_beta_y = (c.x - a.x) * inv_beta;
+        let beta0 = ((a.y - c.y) * min.x + (c.x - a.x) * min.y + a.x * c.y - c.x * a.y) * inv_beta;
+        let delta_gamma_x = (a.y - b.y) * inv_gamma;
+        let delta_gamma_y = (b.x - a.x) * inv_gamma;
+        let gamma0 =
+            ((a.y - b.y) * min.x + (b.x - a.x) * min.y + a.x * b.y - b.x * a.y) * inv_gamma;
 
         let mut x = min.x;
         let mut y = min.y;
-
         let mut beta = beta0;
         let mut gamma = gamma0;
         let mut alpha = 1.0 - beta - gamma;
@@ -174,6 +173,7 @@ impl Render {
 
                 x += 1.0;
 
+                //Barycentric Coordinates incremental updating
                 beta += delta_beta_x;
                 gamma += delta_gamma_x;
                 alpha = 1.0 - beta - gamma;
