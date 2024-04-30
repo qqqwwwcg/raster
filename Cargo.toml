@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 fltk = "1.3.33"
 obj-rs = "0.7.1"
+image = "0.25.1"
 
 [[example]]
 name = "draw_mesh"

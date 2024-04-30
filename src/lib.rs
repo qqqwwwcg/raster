@@ -1,8 +1,16 @@
 mod mesh;
 pub use mesh::*;
 mod buffer;
-use buffer::*;
+pub use buffer::*;
 mod render;
 pub use render::*;
 mod math;
 pub use math::*;
+mod camera;
+pub use camera::*;
+mod texture;
+pub use texture::*;
+mod shader;
+pub use shader::*;
+mod material;
+pub use material::*;

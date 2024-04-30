@@ -1,16 +1,27 @@
 use crate::*;
 
 pub struct Render {
-    //camera: Camera,
+    width: u32,
+    height: u32,
     frame_buffer: FrameBuffer,
     depth_buffer: DepthBuffer,
+    camera: Camera,
+    shader: Shader,
 }
 impl Render {
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u32, height: u32, camera: Camera, shader: Shader) -> Self {
         Self {
-            frame_buffer: FrameBuffer::new(width, height),
-            depth_buffer: DepthBuffer::new_with_capacity(width, height, f32::NEG_INFINITY),
+            width,
+            height,
+            frame_buffer: FrameBuffer::new(width, height, [0; 3]),
+            depth_buffer: DepthBuffer::new(width, height, -1.0),
+            camera,
+            shader,
         }
+    }
+    pub fn reset(&mut self) {
+        self.frame_buffer.reset([0; 3]);
+        self.depth_buffer.reset(-1.0);
     }
     fn digital_differential_analyzer_draw_line(
         &mut self,
@@ -19,7 +30,7 @@ impl Render {
         x1: f32,
         y1: f32,
         steep: Steep,
-        color: Vec3,
+        color: Color,
     ) {
         let dx = x1 - x0;
         let dy = y1 - y0;
@@ -45,7 +56,7 @@ impl Render {
         x1: f32,
         y1: f32,
         steep: Steep,
-        color: Vec3,
+        color: Color,
     ) {
         let inc = if y1 < y0 { -1.0 } else { 1.0 };
         //f(x,y) = (y1 -y2) * x + (x2 - x1) * y + x1 * y2 - x2 * y1
@@ -74,7 +85,7 @@ impl Render {
         x1: i32,
         y1: i32,
         steep: Steep,
-        color: Vec3,
+        color: Color,
     ) {
         let dx = x1 - x0;
         let dy = y1 - y0;
@@ -101,12 +112,18 @@ impl Render {
         }
     }
 
-    pub fn draw_point(&mut self, point: Vec2, color: Vec3) {
+    pub fn draw_point(&mut self, point: Vec2, color: Color) {
         self.frame_buffer
             .draw_pixel((point.x as u32, point.y as u32), color)
     }
 
-    pub fn draw_line(&mut self, start: Vec2, end: Vec2, color: Vec3, algorithm: DrawLineAlgorithm) {
+    pub fn draw_line(
+        &mut self,
+        start: Vec2,
+        end: Vec2,
+        color: Color,
+        algorithm: DrawLineAlgorithm,
+    ) {
         if start.x == end.x && start.y == end.y {
             //draw line downgrade to draw point
             self.frame_buffer
@@ -142,51 +159,123 @@ impl Render {
     }
 
     //Barycentric Coordinates incremental updating
-    pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Vec3) {
+    pub fn raster_triangle(&mut self, triangle: &Triangle) -> Vec<Fragment> {
+        let a = triangle.a.position;
+        let b = triangle.b.position;
+        let c = triangle.c.position;
+
+        //Barycentric Coordinates
+        let barycentric_coordinates = |p: Vec2| {
+            let gamma = ((a.y - b.y) * p.x + (b.x - a.x) * p.y + a.x * b.y - b.x * a.y)
+                / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
+            let beta = ((a.y - c.y) * p.x + (c.x - a.x) * p.y + a.x * c.y - c.x * a.y)
+                / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
+            (1.0 - beta - gamma, beta, gamma)
+        };
+
         //get bounding
-        let min = Vec2::new(a.x.min(b.x).min(c.x), a.y.min(b.y).min(c.y));
-        let max = Vec2::new(a.x.max(b.x).max(c.x), a.y.max(b.y).max(c.y));
+        let min_x = a.x.min(b.x).min(c.x) as u32;
+        let min_y = a.y.min(b.y).min(c.y) as u32;
+        let max_x = a.x.max(b.x).max(c.x) as u32;
+        let max_y = a.y.max(b.y).max(c.y) as u32;
 
-        let inv_beta = 1.0 / ((a.y - c.y) * b.x + (c.x - a.x) * b.y + a.x * c.y - c.x * a.y);
-        let inv_gamma = 1.0 / ((a.y - b.y) * c.x + (b.x - a.x) * c.y + a.x * b.y - b.x * a.y);
-        let delta_beta_x = (a.y - c.y) * inv_beta;
-        let delta_beta_y = (c.x - a.x) * inv_beta;
-        let beta0 = ((a.y - c.y) * min.x + (c.x - a.x) * min.y + a.x * c.y - c.x * a.y) * inv_beta;
-        let delta_gamma_x = (a.y - b.y) * inv_gamma;
-        let delta_gamma_y = (b.x - a.x) * inv_gamma;
-        let gamma0 =
-            ((a.y - b.y) * min.x + (b.x - a.x) * min.y + a.x * b.y - b.x * a.y) * inv_gamma;
-
-        let mut x = min.x;
-        let mut y = min.y;
-        let mut beta = beta0;
-        let mut gamma = gamma0;
-        let mut alpha = 1.0 - beta - gamma;
-
-        while y <= max.y {
-            while x <= max.x {
-                if alpha >= 0. && beta >= 0. && gamma >= 0. {
-                    self.frame_buffer.draw_pixel((x as u32, y as u32), color)
+        let mut fragments = vec![];
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                let pixel_center = Vec2::new(x as f32 + 0.5, y as f32 + 0.5);
+                //TODO 透视投影矫正
+                let (alpha, beta, gamma) = barycentric_coordinates(pixel_center);
+                if alpha >= 0.0 && beta >= 0.0 && gamma >= 0.0 {
+                    let frame = triangle.create_frame(Vec3::new(alpha, beta, gamma), (x, y));
+                    fragments.push(frame)
                 }
-
-                x += 1.0;
-
-                //Barycentric Coordinates incremental updating
-                beta += delta_beta_x;
-                gamma += delta_gamma_x;
-                alpha = 1.0 - beta - gamma;
             }
-
-            x = min.x;
-            y += 1.0;
-            beta = beta0 + (y - min.y) * delta_beta_y;
-            gamma = gamma0 + (y - min.y) * delta_gamma_y;
-            alpha = 1.0 - beta - gamma;
         }
+
+        fragments
     }
 
+    pub fn draw(&mut self, mesh: &Mesh, light: &PointLight, model_mat: Matrix4) {
+        //Vertex Shader
+        let mvp = self.camera.get_projection_matrix() * self.camera.get_view_matrix() * model_mat;
+        let uniforms: Vec<Uniform> = mesh
+            .vertexes
+            .iter()
+            .map(|vertex| self.shader.run_vertex_shader(vertex, &mvp, &model_mat))
+            .collect();
+
+        //Primitive Assembly
+        let n_face = mesh.indies.len() / 3;
+        let mut triangles = Vec::with_capacity(n_face);
+        for i in 0..n_face {
+            let triangle = Triangle::new(
+                uniforms[mesh.indies[3 * i]],
+                uniforms[mesh.indies[3 * i + 1]],
+                uniforms[mesh.indies[3 * i + 2]],
+            );
+            triangles.push(triangle)
+        }
+
+        //back face culling
+        let camera_dir = self.camera.get_dir();
+        triangles.retain(|triangle| triangle.get_world_normal().dot(&camera_dir) < 0.0);
+
+        //near & far plane culling
+        triangles.retain(|triangle| !triangle.ndc_culling_test());
+
+        //TODO:clipping
+
+        //screen mapping
+        let width = self.width as f32;
+        let height = self.height as f32;
+        triangles.iter_mut().for_each(|triangle| {
+            //Screen origin is Top left corner
+            let view_prot_transform = |ndc: &mut Vec3| {
+                ndc.x = (ndc.x + 1.0) * 0.5 * width as f32;
+                ndc.y = (-ndc.y + 1.0) * 0.5 * height as f32;
+            };
+            view_prot_transform(&mut triangle.a.position);
+            view_prot_transform(&mut triangle.b.position);
+            view_prot_transform(&mut triangle.c.position);
+        });
+
+        //Rasterization
+        let fragments: Vec<Fragment> = triangles
+            .iter()
+            .flat_map(|triangle| self.raster_triangle(triangle))
+            .collect();
+
+        //Fragment Shader
+        let camera_position = self.camera.get_position();
+        let shaded_fragments: Vec<ShadedFragment> = fragments
+            .iter()
+            .map(|fragment| {
+                self.shader.run_fragment_shader(
+                    fragment,
+                    &mesh.material,
+                    light,
+                    &camera_position,
+                    &model_mat,
+                )
+            })
+            .collect();
+
+        //Output merge
+        //depth test
+        shaded_fragments.iter().for_each(|shaded_fragment| {
+            if self.depth_buffer.depth_test(shaded_fragment) {
+                self.depth_buffer.depth_write(shaded_fragment);
+
+                self.frame_buffer
+                    .draw_pixel(shaded_fragment.screen_pos, shaded_fragment.color)
+            }
+        });
+    }
     pub fn get_frame(&self) -> Vec<u8> {
         self.frame_buffer.flatten()
+    }
+    pub fn get_camera(&mut self) -> &mut Camera {
+        &mut self.camera
     }
 }
 
